@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sala de Guerra Eleitoral - Deputado Federal SC</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://d3js.org/topojson.v3.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'playfair': ['"Playfair Display"', 'serif'],
+                        'sans': ['Inter', 'sans-serif']
+                    },
+                    colors: {
+                        'primary': '#8b5cf6',
+                        'secondary': '#14b8a6',
+                        'background': '#0f172a',
+                        'card': '#1e293b',
+                        'text-main': '#f8fafc',
+                        'text-light': '#cbd5e1',
+                        'border': '#334155',
+                        'success': '#10b981',
+                        'danger': '#ef4444',
+                        'warning': '#f59e0b',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #0f172a;
+            color: #f8fafc;
+            scroll-behavior: smooth;
+        }
+        
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #1e293b; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #8b5cf6; }
+
+        .glass {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .tab-button {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            color: #cbd5e1;
+        }
+        
+        .tab-button.active { color: #f8fafc; background: rgba(255,255,255,0.05); }
+        .tab-button.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40%;
+            height: 3px;
+            background: #8b5cf6;
+            border-radius: 2px;
+            box-shadow: 0 -2px 10px rgba(139, 92, 246, 0.8);
+        }
+
+        .municipio {
+            stroke: #0f172a;
+            stroke-width: 0.5px;
+            transition: all 0.3s ease;
+        }
+
+        .municipio:hover {
+            fill-opacity: 1;
+            stroke-width: 1.5px;
+            stroke: #fff;
+            filter: drop-shadow(0 0 5px rgba(255,255,255,0.5));
+        }
+
+        .loader {
+            border: 3px solid #334155;
+            border-top: 3px solid #8b5cf6;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .pulse-danger {
+            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+            animation: pulse-red 2s infinite;
+        }
+
+        @keyframes pulse-red {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+
+        .toast-enter { animation: slideIn 0.3s ease forwards; }
+        .toast-exit { animation: slideOut 0.3s ease forwards; }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white !important; color: black !important; }
+            .bg-card { background: #f1f5f9 !important; border: 1px solid #ccc !important; }
+            * { color: black !important; -webkit-print-color-adjust: exact; }
+        }
+    </style>
+</head>
+<body class="antialiased font-sans">
+    <div class="min-h-screen flex flex-col relative">
+        <div id="toast-container" class="fixed top-24 right-6 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+        <header class="glass sticky top-0 z-40 border-b border-border">
+            <div class="max-w-screen-2xl mx-auto px-6 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
+                <div class="flex items-center space-x-4">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-primary to-secondary flex items-center justify-center shadow-lg shadow-primary/20 relative overflow-hidden">
+                        <div class="absolute inset-0 bg-white/20 animate-pulse"></div>
+                        <i class="fa-solid fa-landmark-dome text-white text-xl relative z-10"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-black tracking-tight text-text-main leading-none">WAR ROOM <span class="text-primary text-sm align-top">FED</span></h1>
+                        <p class="text-[10px] text-text-light uppercase tracking-widest font-bold opacity-60">Deputados Federais - SC 2026</p>
+                    </div>
+                </div>
+
+                <nav class="flex space-x-1 bg-background/80 p-1.5 rounded-xl border border-border no-print backdrop-blur-md" id="main-tabs">
+                    <button onclick="changeTab('simulador')" class="tab-button active px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 hover:bg-white/5">
+                        <i class="fa-solid fa-chess-board text-primary"></i> Simulador
+                    </button>
+                    <button onclick="changeTab('legendas')" class="tab-button px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 hover:bg-white/5">
+                        <i class="fa-solid fa-users text-secondary"></i> Legendas
+                    </button>
+                    <button onclick="changeTab('analise')" class="tab-button px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 hover:bg-white/5">
+                        <i class="fa-solid fa-brain text-warning"></i> Estratégia
+                    </button>
+                    <button onclick="changeTab('territorio')" class="tab-button px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 hover:bg-white/5">
+                        <i class="fa-solid fa-map-location-dot text-success"></i> Território
+                    </button>
+                </nav>
+
+                <div class="flex items-center gap-3 no-print">
+                    <button onclick="exportCSV()" class="p-2.5 rounded-lg bg-card border border-border text-text-light hover:text-white hover:border-primary transition-all" title="Exportar para CSV">
+                        <i class="fa-solid fa-file-csv"></i>
+                    </button>
+                    <button onclick="window.print()" class="p-2.5 rounded-lg bg-card border border-border text-text-light hover:text-white hover:border-secondary transition-all" title="Imprimir Relatório">
+                        <i class="fa-solid fa-print"></i>
+                    </button>
+                    <button onclick="saveProject()" class="px-5 py-2.5 bg-primary text-white text-sm font-bold rounded-lg shadow-lg shadow-primary/30 hover:bg-primary/80 hover:scale-105 active:scale-95 transition-all">
+                        Salvar Projeto
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <main class="flex-grow max-w-screen-2xl mx-auto w-full p-6 space-y-8 relative z-10">
+            
+            <div id="tab-simulador" class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                <aside class="lg:col-span-3 space-y-6 no-print">
+                    <div class="bg-card p-5 rounded-2xl border border-border shadow-sm">
+                        <h2 class="text-sm font-black text-text-light uppercase tracking-tighter mb-4 flex items-center gap-2">
+                            <i class="fa-solid fa-sliders text-primary"></i> Cenário Macroeconômico
+                        </h2>
+                        <div class="space-y-6">
+                            <div class="space-y-3">
+                                <div class="flex justify-between items-end">
+                                    <label class="text-xs font-bold text-text-light">Abstenção Estimada</label>
+                                    <span id="label-abstencao" class="text-lg font-mono text-primary font-black leading-none">18.6%</span>
+                                </div>
+                                <input type="range" id="input-abstencao" min="10" max="35" step="0.1" value="18.6" class="w-full h-2 bg-background rounded-lg appearance-none cursor-pointer accent-primary border border-border" oninput="runSimulation()">
+                                <div class="flex justify-between text-[9px] text-text-light opacity-50 font-bold px-1">
+                                    <span>Otimista (10%)</span>
+                                    <span>Pessimista (35%)</span>
+                                </div>
+                            </div>
+                            <div class="space-y-3">
+                                <div class="flex justify-between items-end">
+                                    <label class="text-xs font-bold text-text-light">Cresc. Eleitorado</label>
+                                    <span id="label-crescimento" class="text-lg font-mono text-secondary font-black leading-none">0%</span>
+                                </div>
+                                <input type="range" id="input-crescimento" min="-5" max="10" step="0.1" value="0" class="w-full h-2 bg-background rounded-lg appearance-none cursor-pointer accent-secondary border border-border" oninput="runSimulation()">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-card p-5 rounded-2xl border border-border flex flex-col h-[500px]">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-sm font-black text-text-light uppercase tracking-tighter flex items-center gap-2">
+                                <i class="fa-solid fa-bolt text-warning"></i> Impulso Político
+                            </h2>
+                            <button onclick="resetBoosts()" class="text-[10px] text-text-light hover:text-danger underline decoration-danger/50">Resetar</button>
+                        </div>
+                        <div id="boost-controls" class="space-y-4 overflow-y-auto pr-2 custom-scrollbar flex-grow"></div>
+                    </div>
+                </aside>
+
+                <div class="lg:col-span-9 space-y-6">
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="bg-card p-5 rounded-2xl border border-border flex flex-col justify-center relative overflow-hidden group">
+                            <div class="absolute -right-4 -bottom-4 text-border opacity-50 group-hover:scale-110 transition-transform duration-500"><i class="fa-solid fa-users text-6xl"></i></div>
+                            <p class="text-[10px] font-black text-text-light uppercase opacity-70 mb-1 relative z-10">Votos Válidos</p>
+                            <p id="kpi-votos" class="text-3xl font-black text-text-main font-mono relative z-10 tracking-tight">0</p>
+                        </div>
+                        <div class="bg-card p-5 rounded-2xl border border-border flex flex-col justify-center relative overflow-hidden group">
+                            <div class="absolute -right-4 -bottom-4 text-primary/10 group-hover:scale-110 transition-transform duration-500"><i class="fa-solid fa-divide text-6xl"></i></div>
+                            <p class="text-[10px] font-black text-text-light uppercase opacity-70 mb-1 relative z-10">Quociente Eleitoral</p>
+                            <p id="kpi-qe" class="text-3xl font-black text-primary font-mono relative z-10 tracking-tight">0</p>
+                        </div>
+                        <div class="bg-card p-5 rounded-2xl border border-border flex flex-col justify-center relative overflow-hidden group">
+                            <div class="absolute -right-4 -bottom-4 text-secondary/10 group-hover:scale-110 transition-transform duration-500"><i class="fa-solid fa-filter text-6xl"></i></div>
+                            <p class="text-[10px] font-black text-text-light uppercase opacity-70 mb-1 relative z-10">Cláusula 10%</p>
+                            <p id="kpi-clausula" class="text-3xl font-black text-secondary font-mono relative z-10 tracking-tight">0</p>
+                        </div>
+                        <div class="bg-card p-5 rounded-2xl border border-border flex flex-col justify-center relative overflow-hidden">
+                            <div id="parliament-chart" class="absolute inset-0 flex items-center justify-center opacity-80 mt-4"></div>
+                            <p class="text-[10px] font-black text-text-light uppercase opacity-70 mb-1 relative z-10">Cadeiras Federais</p>
+                            <p class="text-3xl font-black text-warning font-mono relative z-10 tracking-tight">16</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                        <div class="bg-card p-6 rounded-2xl border border-border flex flex-col">
+                            <h3 class="text-lg font-black mb-6 flex items-center justify-between">
+                                <span class="flex items-center gap-2"><i class="fa-solid fa-ranking-star text-primary"></i> Bancada Federal Projetada</span>
+                                <span class="text-xs font-normal text-text-light bg-background px-2 py-1 rounded-md">Total: 16 vagas</span>
+                            </h3>
+                            <div id="results-list" class="space-y-3 overflow-y-auto pr-2 custom-scrollbar" style="max-height: 500px;"></div>
+                        </div>
+
+                        <div class="bg-card p-6 rounded-2xl border border-border flex flex-col relative overflow-hidden shadow-[inset_0_0_50px_rgba(239,68,68,0.02)]">
+                             <div class="absolute -top-10 -right-10 text-danger/5 rotate-12 pointer-events-none">
+                                 <i class="fa-solid fa-triangle-exclamation text-[200px]"></i>
+                             </div>
+                            <h3 class="text-lg font-black mb-6 flex items-center gap-2 relative z-10">
+                                <i class="fa-solid fa-bullseye text-danger pulse-danger rounded-full"></i> Zonas de Conflito (Sobras)
+                            </h3>
+                            <p class="text-xs text-text-light mb-4 relative z-10 opacity-70">Últimas vagas distribuídas aplicando a regra eleitoral 80/20 rigorosa para a Câmara dos Deputados.</p>
+                            <div id="conflict-list" class="space-y-4 relative z-10 overflow-y-auto pr-2 custom-scrollbar"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-legendas" class="hidden space-y-6">
+                <div class="bg-card p-8 rounded-2xl border border-border relative overflow-hidden">
+                    <div class="absolute right-0 top-0 w-1/3 h-full bg-gradient-to-l from-secondary/10 to-transparent pointer-events-none"></div>
+                    
+                    <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 relative z-10">
+                        <div>
+                            <h2 class="text-3xl font-black text-text-main mb-2">Editor Avançado de Nominatas (Federal)</h2>
+                            <p class="text-text-light opacity-80">Ajuste o desempenho individual, simule crescimento e novas filiações para Brasília.</p>
+                        </div>
+                        <div class="flex items-center gap-3 w-full md:w-auto">
+                            <div class="relative w-full md:w-64">
+                                <i class="fa-solid fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-text-light opacity-50"></i>
+                                <input type="text" id="search-candidate" placeholder="Buscar candidato ou partido..." class="w-full bg-background border border-border text-white px-10 py-2.5 rounded-xl text-sm focus:border-primary focus:ring-1 focus:ring-primary transition-all outline-none" onkeyup="filterNominatas()">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="nominatas-editor" class="space-y-4 relative z-10 overflow-y-auto pr-2 custom-scrollbar" style="max-height: 650px;"></div>
+                </div>
+            </div>
+
+            <div id="tab-analise" class="hidden space-y-8">
+                <div class="bg-card p-8 rounded-3xl border border-border shadow-2xl overflow-hidden relative">
+                    <div class="absolute -top-32 -left-32 w-96 h-96 bg-primary/20 rounded-full blur-[100px] pointer-events-none"></div>
+                    <div class="absolute -bottom-32 -right-32 w-96 h-96 bg-secondary/20 rounded-full blur-[100px] pointer-events-none"></div>
+                    
+                    <div class="max-w-3xl mx-auto text-center space-y-4 mb-12 relative z-10">
+                        <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-black uppercase tracking-widest shadow-[0_0_15px_rgba(139,92,246,0.2)]">
+                            <span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span> Motor Gemini 2.5 Ativo
+                        </div>
+                        <h2 class="text-4xl md:text-5xl font-black text-text-main tracking-tight">Gabinete de Crise <span class="text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">IA</span></h2>
+                        <p class="text-text-light text-lg opacity-80">Gere memorandos táticos em segundos. A IA avalia as matemáticas da simulação para entregar caminhos para a Câmara Federal.</p>
+                    </div>
+
+                    <div class="flex flex-col md:flex-row gap-4 items-end justify-center mb-12 relative z-10">
+                        <div class="w-full md:w-72 space-y-2">
+                            <label class="text-[10px] font-black uppercase text-text-light opacity-60 ml-1">Foco da Análise</label>
+                            <select id="ai-target-party" class="w-full bg-background border border-border p-3.5 rounded-xl font-bold focus:ring-2 focus:ring-primary transition-all text-white outline-none appearance-none"></select>
+                        </div>
+                        <button id="btn-ai-generate" onclick="runAIAnalysis()" class="px-8 py-3.5 bg-gradient-to-r from-primary to-secondary text-white font-black rounded-xl hover:shadow-[0_0_20px_rgba(139,92,246,0.4)] hover:scale-105 active:scale-95 transition-all flex items-center gap-3">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> SINTETIZAR ESTRATÉGIA
+                        </button>
+                    </div>
+
+                    <div id="ai-output" class="bg-background/80 backdrop-blur-sm rounded-2xl border border-border p-8 min-h-[400px] prose prose-invert max-w-none text-text-light relative z-10 shadow-inner">
+                        <div class="flex flex-col items-center justify-center h-full opacity-20 space-y-6">
+                            <i class="fa-solid fa-network-wired text-7xl"></i>
+                            <p class="font-bold text-xl tracking-wide uppercase">Aguardando Parâmetros</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-territorio" class="hidden space-y-8">
+                <div class="bg-card p-8 rounded-2xl border border-border">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-6">
+                        <div>
+                            <h2 class="text-2xl font-black text-text-main">Mapeamento Geopolítico</h2>
+                            <p class="text-text-light opacity-60">Visualização de dominância partidária (Federal) em Santa Catarina.</p>
+                        </div>
+                        <div class="bg-background p-2 rounded-lg border border-border flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-full bg-primary"></span><span class="text-xs text-text-light mr-3">Litoral</span>
+                            <span class="w-3 h-3 rounded-full bg-secondary"></span><span class="text-xs text-text-light mr-3">Vale</span>
+                            <span class="w-3 h-3 rounded-full bg-warning"></span><span class="text-xs text-text-light">Oeste</span>
+                        </div>
+                    </div>
+
+                    <div id="map-container" class="w-full bg-[#0b1121] rounded-2xl aspect-[16/9] border border-border relative overflow-hidden shadow-inner cursor-crosshair">
+                         <div id="map-tooltip" class="absolute hidden bg-card/90 backdrop-blur-sm border border-border px-4 py-3 rounded-xl shadow-2xl z-50 pointer-events-none text-xs transform -translate-x-1/2 -translate-y-full mt-[-10px]"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal Base -->
+    <div id="modal-container" class="fixed inset-0 z-[100] hidden items-center justify-center bg-background/90 backdrop-blur-sm p-4 opacity-0 transition-opacity duration-300" onclick="handleOutsideClick(event)">
+        <div class="bg-card w-full max-w-2xl rounded-3xl border border-border shadow-2xl max-h-[90vh] overflow-y-auto transform scale-95 transition-transform duration-300" id="modal-content" onclick="event.stopPropagation()"></div>
+    </div>
+
+    <script>
+        // ==========================================
+        // CONFIG & STATE (DEPUTADOS FEDERAIS SC)
+        // ==========================================
+        const apiKey = ""; 
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'war-room-sc-federal-2026';
+        
+        // Vagas exatas para a Câmara dos Deputados em SC
+        const VAGAS_TOTAIS = 16;
+        
+        // Base de Dados aproximada de 2022 para Deputados Federais (Valid Votes SC ~ 3.96M)
+        // Os votos dos partidos foram ajustados para que o algoritmo D'Hondt com regra 80/20
+        // devolva EXATAMENTE o resultado de 2022: PL(6), MDB(3), PT(2), PSD(2), PSDB/CID(1), NOVO(1), UNIÃO(1)
+        let currentState = {
+            eleitoradoBase: 5495133,
+            votosValidosBase: 3960000, 
+            votosBrancosBase: 289065,
+            votosNulosBase: 153702,
+            partidos: [
+                { nome: 'PL', votos: 1300000, boost: 0, cor: '#0ea5e9', candidates: [{nome: 'Carol de Toni', votos: 227309}, {nome: 'Jorge Goetten', votos: 159339}, {nome: 'Julia Zanatta', votos: 111588}, {nome: 'Daniel Freitas', votos: 108001}, {nome: 'Daniela Reinehr', votos: 84631}, {nome: 'Zé Trovão', votos: 71140}] },
+                { nome: 'MDB', votos: 600000, boost: 0, cor: '#facc15', candidates: [{nome: 'Valdir Cobalchini', votos: 98124}, {nome: 'Carlos Chiodini', votos: 80089}, {nome: 'Rafael Pezenti', votos: 68208}] },
+                { nome: 'PT', votos: 505000, boost: 0, cor: '#dc2626', candidates: [{nome: 'Pedro Uczai', votos: 173531}, {nome: 'Ana Paula Lima', votos: 148781}] },
+                { nome: 'PSD', votos: 495000, boost: 0, cor: '#f97316', candidates: [{nome: 'Ismael dos Santos', votos: 110531}, {nome: 'Ricardo Guidi', votos: 74066}] },
+                { nome: 'PSDB/CID', votos: 255000, boost: 0, cor: '#0c4a6e', candidates: [{nome: 'Carmen Zanotto', votos: 130138}] },
+                { nome: 'NOVO', votos: 250000, boost: 0, cor: '#ea580c', candidates: [{nome: 'Gilson Marques', votos: 87894}] },
+                { nome: 'UNIÃO', votos: 248000, boost: 0, cor: '#1e3a8a', candidates: [{nome: 'Fábio Schiochet', votos: 51824}] },
+                { nome: 'PP', votos: 220000, boost: 0, cor: '#0284c7', candidates: [{nome: 'Angela Amin', votos: 65000}] },
+                { nome: 'PODE', votos: 87000, boost: 0, cor: '#38bdf8', candidates: [{nome: 'Norma Pereira', votos: 30000}] }
+            ],
+            simResults: null
+        };
+
+        window.onload = () => {
+            currentState.partidos.sort((a,b) => b.votos - a.votos);
+
+            currentState.partidos.forEach(p => {
+                const sumCands = p.candidates.reduce((s,c) => s + c.votos, 0);
+                if (p.votos > sumCands) {
+                    p.candidates.push({ nome: 'Outros Candidatos (Restante do Partido)', votos: p.votos - sumCands, isOutros: true, growth: 0 });
+                }
+                p.candidates.forEach(c => c.growth = c.growth || 0);
+            });
+
+            initControls();
+            runSimulation();
+            renderNominatas();
+        };
+
+        // ==========================================
+        // CONTROLS & UI
+        // ==========================================
+        function initControls() {
+            const container = document.getElementById('boost-controls');
+            const aiSelect = document.getElementById('ai-target-party');
+            container.innerHTML = '';
+            aiSelect.innerHTML = '';
+            
+            currentState.partidos.forEach(p => {
+                const div = document.createElement('div');
+                div.className = 'space-y-1.5 p-2 rounded-lg hover:bg-white/5 transition-colors';
+                div.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs font-black" style="color: ${p.cor}">${p.nome}</span>
+                        <span id="boost-val-${p.nome}" class="text-xs font-mono font-bold ${p.boost !== 0 ? 'text-white' : 'text-text-light opacity-50'}">${(p.boost > 0 ? '+' : '')}${(p.boost*100).toFixed(0)}%</span>
+                    </div>
+                    <input type="range" min="-30" max="100" value="${p.boost * 100}" step="1" 
+                        class="w-full h-1.5 bg-background rounded-lg appearance-none cursor-pointer border border-border"
+                        style="accent-color: ${p.cor}"
+                        oninput="updateBoost('${p.nome}', this.value)">
+                `;
+                container.appendChild(div);
+
+                const opt = document.createElement('option');
+                opt.value = p.nome;
+                opt.textContent = p.nome;
+                aiSelect.appendChild(opt);
+            });
+        }
+
+        function updateBoost(nome, val) {
+            const p = currentState.partidos.find(x => x.nome === nome);
+            if (p) {
+                p.boost = parseInt(val) / 100;
+                const label = document.getElementById(`boost-val-${nome}`);
+                label.textContent = (val > 0 ? '+' : '') + val + '%';
+                label.className = `text-xs font-mono font-bold ${val != 0 ? 'text-white' : 'text-text-light opacity-50'}`;
+                
+                runSimulation();
+                
+                const pIndex = currentState.partidos.findIndex(x => x.nome === nome);
+                const sumCands = p.candidates.reduce((acc, c) => acc + Math.floor(c.votos * (1 + c.growth)), 0);
+                const partyTotalEl = document.getElementById(`party-total-${pIndex}`);
+                if(partyTotalEl) partyTotalEl.innerHTML = `${Math.floor(sumCands * (1 + p.boost)).toLocaleString('pt-BR')} <span class="text-xs text-text-light opacity-50">vts</span>`;
+            }
+        }
+
+        function resetBoosts() {
+            currentState.partidos.forEach(p => p.boost = 0);
+            initControls();
+            runSimulation();
+            renderNominatas();
+            showToast("Impulsos Políticos resetados.", "success");
+        }
+
+        // ==========================================
+        // SIMULATION ENGINE (D'Hondt Rigoroso 80/20 - Federal)
+        // ==========================================
+        function runSimulation() {
+            const absInput = parseFloat(document.getElementById('input-abstencao').value) / 100;
+            const growthInput = parseFloat(document.getElementById('input-crescimento').value) / 100;
+            
+            document.getElementById('label-abstencao').textContent = (absInput * 100).toFixed(1) + '%';
+            document.getElementById('label-crescimento').textContent = (growthInput > 0 ? '+' : '') + (growthInput * 100).toFixed(1) + '%';
+
+            const eleitoradoSim = Math.floor(currentState.eleitoradoBase * (1 + growthInput));
+            const comparecimento = Math.floor(eleitoradoSim * (1 - absInput));
+            const totalOutros = currentState.votosValidosBase + currentState.votosBrancosBase + currentState.votosNulosBase;
+            const validosPercent = currentState.votosValidosBase / totalOutros;
+            const validosSim = Math.floor(comparecimento * validosPercent);
+            
+            const QE = Math.floor(validosSim / VAGAS_TOTAIS);
+            const Clausula = Math.floor(QE * 0.1);
+
+            animateValue("kpi-votos", validosSim);
+            animateValue("kpi-qe", QE);
+            animateValue("kpi-clausula", Clausula);
+
+            let partidosSim = currentState.partidos.map(p => {
+                let sumCands = p.candidates.reduce((acc, c) => acc + Math.floor(c.votos * (1 + c.growth)), 0);
+                const votosSim = Math.floor(sumCands * (1 + p.boost));
+                const diretas = Math.floor(votosSim / QE);
+                return { ...p, votosSim, diretas, sobras: 0, total: diretas };
+            });
+
+            let vagasOcupadas = partidosSim.reduce((sum, p) => sum + p.diretas, 0);
+            let sobrasLog = [];
+            
+            while(vagasOcupadas < VAGAS_TOTAIS) {
+                partidosSim.forEach(p => {
+                    p.media = p.votosSim / (p.total + 1);
+                    p.eligibleForSobra = false;
+                    
+                    if (p.votosSim >= QE * 0.8) {
+                        let nextCand = p.candidates[p.total]; 
+                        if (nextCand && !nextCand.isOutros) {
+                            let candProj = nextCand.votos * (1 + nextCand.growth) * (1 + p.boost);
+                            if (candProj >= QE * 0.2) {
+                                p.eligibleForSobra = true;
+                            }
+                        }
+                    }
+                });
+
+                let validParties = partidosSim.filter(p => p.eligibleForSobra);
+                
+                if (validParties.length === 0) {
+                    validParties = partidosSim.filter(p => {
+                        let nextCand = p.candidates[p.total];
+                        return nextCand && !nextCand.isOutros; 
+                    });
+                }
+                
+                if (validParties.length === 0) {
+                    validParties = partidosSim;
+                }
+
+                validParties.sort((a,b) => b.media - a.media);
+                const vencedor = validParties[0];
+                const ameaca = validParties.length > 1 ? validParties[1] : { nome: 'Nenhum', cor: '#fff', media: 0 };
+                
+                vencedor.sobras++;
+                vencedor.total++;
+                
+                sobrasLog.push({
+                    vaga: vagasOcupadas + 1,
+                    vencedor: vencedor.nome,
+                    vCor: vencedor.cor,
+                    media: Math.floor(vencedor.media),
+                    ameaca: ameaca.nome,
+                    aCor: ameaca.cor,
+                    ameacaMedia: Math.floor(ameaca.media)
+                });
+                
+                vagasOcupadas++;
+            }
+
+            currentState.simResults = { partidosSim, sobrasLog, QE, Clausula };
+            renderDashboard();
+            drawParliament(partidosSim);
+        }
+
+        // ==========================================
+        // RENDERERS (DASHBOARD)
+        // ==========================================
+        function renderDashboard() {
+            const list = document.getElementById('results-list');
+            list.innerHTML = '';
+            
+            currentState.simResults.partidosSim
+                .sort((a,b) => b.total - a.total || b.votosSim - a.votosSim)
+                .forEach(p => {
+                    if(p.total === 0) return;
+                    const div = document.createElement('div');
+                    div.className = "group p-4 rounded-xl border border-border bg-background/50 hover:bg-card transition-all cursor-pointer relative overflow-hidden";
+                    div.onclick = () => showPartyDetail(p.nome);
+                    div.innerHTML = `
+                        <div class="absolute left-0 top-0 bottom-0 w-1 opacity-50 group-hover:opacity-100 transition-opacity" style="background-color: ${p.cor}"></div>
+                        <div class="flex justify-between items-center mb-3 ml-2">
+                            <span class="font-black text-sm text-white">${p.nome}</span>
+                            <div class="flex items-baseline gap-1">
+                                <span class="text-2xl font-black" style="color: ${p.cor}">${p.total}</span>
+                                <span class="text-[10px] font-bold text-text-light opacity-50 uppercase">Cadeiras</span>
+                            </div>
+                        </div>
+                        <div class="w-full bg-border h-2 rounded-full overflow-hidden flex ml-2 mb-2">
+                            <div class="h-full opacity-90" style="width: ${(p.diretas/p.total)*100}%; background-color: ${p.cor}"></div>
+                            <div class="h-full opacity-40 bg-white" style="width: ${(p.sobras/p.total)*100}%"></div>
+                        </div>
+                        <div class="flex justify-between text-[10px] font-bold text-text-light opacity-60 ml-2">
+                            <span><i class="fa-solid fa-check mr-1"></i>${p.diretas} Diretas</span>
+                            <span><i class="fa-solid fa-plus mr-1"></i>${p.sobras} Sobras</span>
+                            <span class="font-mono text-white">${p.votosSim.toLocaleString('pt-BR')} vts</span>
+                        </div>
+                    `;
+                    list.appendChild(div);
+                });
+
+            const conflict = document.getElementById('conflict-list');
+            conflict.innerHTML = '';
+            
+            currentState.simResults.sobrasLog.slice(-5).reverse().forEach(log => {
+                const diff = log.media - log.ameacaMedia;
+                const div = document.createElement('div');
+                div.className = "p-4 rounded-xl border border-border bg-background/50 hover:bg-card transition-colors relative overflow-hidden group";
+                div.innerHTML = `
+                    <div class="absolute inset-0 bg-gradient-to-r from-danger/5 to-transparent pointer-events-none group-hover:from-danger/10 transition-colors"></div>
+                    <div class="flex justify-between items-start relative z-10 mb-3">
+                        <span class="text-[10px] font-black text-text-light uppercase tracking-widest"><i class="fa-solid fa-chair text-danger mr-1"></i> Vaga #${log.vaga}</span>
+                        <span class="text-[9px] font-black bg-danger/20 text-danger px-2 py-0.5 rounded border border-danger/30">DISPUTA CRÍTICA</span>
+                    </div>
+                    <div class="flex items-center justify-between relative z-10 bg-[#0b1121] p-2 rounded-lg border border-border">
+                        <div class="flex flex-col">
+                            <span class="text-[9px] uppercase font-bold text-success mb-0.5">Vencendo</span>
+                            <span class="font-black text-xs text-white flex items-center gap-1"><span class="w-2 h-2 rounded-full" style="background-color: ${log.vCor}"></span>${log.vencedor}</span>
+                        </div>
+                        <div class="text-xs font-mono font-bold text-text-light opacity-50">vs</div>
+                        <div class="flex flex-col text-right">
+                            <span class="text-[9px] uppercase font-bold text-warning mb-0.5">Ameaça</span>
+                            <span class="font-black text-xs text-white flex items-center justify-end gap-1">${log.ameaca}<span class="w-2 h-2 rounded-full" style="background-color: ${log.aCor}"></span></span>
+                        </div>
+                    </div>
+                    <div class="mt-3 text-center relative z-10">
+                        <p class="text-[10px] font-bold text-text-light">Distância: <span class="text-white font-mono bg-border px-1.5 rounded">${diff.toLocaleString('pt-BR')}</span> votos na média</p>
+                    </div>
+                `;
+                conflict.appendChild(div);
+            });
+        }
+
+        // ==========================================
+        // RENDERERS (EDITOR DE LEGENDAS AVANÇADO)
+        // ==========================================
+        function renderNominatas() {
+            const container = document.getElementById('nominatas-editor');
+            container.innerHTML = '';
+            
+            currentState.partidos.forEach((p, pIndex) => {
+                if(p.votos === 0 && p.candidates.length === 0) return;
+                
+                let sumCands = p.candidates.reduce((acc, c) => acc + Math.floor(c.votos * (1 + c.growth)), 0);
+                let projTotal = Math.floor(sumCands * (1 + p.boost));
+
+                const div = document.createElement('div');
+                div.id = `party-acc-container-${pIndex}`;
+                div.className = "bg-background/50 border border-border rounded-xl overflow-hidden transition-all duration-300";
+                
+                const rowsHtml = p.candidates.map((c, cIndex) => {
+                    const projCand = Math.floor(c.votos * (1 + c.growth));
+                    const isOutros = c.isOutros ? true : false;
+                    
+                    return `
+                    <div id="cand-row-${pIndex}-${cIndex}" class="grid grid-cols-1 md:grid-cols-12 gap-3 items-center py-3 border-b border-border/50 last:border-0 hover:bg-white/5 px-4 transition-colors">
+                        <div class="md:col-span-5 flex items-center gap-2">
+                            <span class="text-[10px] font-black opacity-30 w-4">${cIndex+1}.</span>
+                            <input type="text" id="cand-name-${pIndex}-${cIndex}" value="${c.nome}" ${isOutros ? 'readonly class="bg-transparent border-none text-text-light font-bold w-full outline-none"' : 'class="bg-card border border-border px-3 py-1.5 rounded-lg text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none w-full text-sm transition-all"'} oninput="updateCandidate(${pIndex}, ${cIndex})">
+                        </div>
+                        <div class="md:col-span-3 flex items-center gap-2">
+                            <span class="text-[10px] text-text-light uppercase opacity-50 md:hidden w-20">Base:</span>
+                            <input type="number" id="cand-base-${pIndex}-${cIndex}" value="${c.votos}" ${isOutros ? 'readonly class="bg-transparent border-none text-text-light outline-none"' : 'class="bg-card border border-border px-3 py-1.5 rounded-lg text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none w-full text-sm font-mono transition-all"'} oninput="updateCandidate(${pIndex}, ${cIndex})">
+                            <span class="text-[10px] text-text-light uppercase opacity-50 hidden md:inline-block">Base</span>
+                        </div>
+                        <div class="md:col-span-2 flex items-center gap-2">
+                            <span class="text-[10px] text-text-light uppercase opacity-50 md:hidden w-20">Cresc:</span>
+                            <input type="number" id="cand-growth-${pIndex}-${cIndex}" value="${(c.growth*100).toFixed(0)}" ${isOutros ? 'disabled' : ''} class="bg-card border border-border px-3 py-1.5 rounded-lg text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none w-full text-sm font-mono transition-all ${isOutros ? 'opacity-30' : ''}" oninput="updateCandidate(${pIndex}, ${cIndex})">
+                            <span class="text-[10px] text-text-light uppercase opacity-50 hidden md:inline-block">%</span>
+                        </div>
+                        <div class="md:col-span-1 md:text-right flex items-center gap-2 md:block">
+                            <span class="text-[10px] text-text-light uppercase opacity-50 md:hidden w-20">Proj:</span>
+                            <span id="cand-proj-${pIndex}-${cIndex}" class="font-mono font-black text-primary text-sm">${projCand.toLocaleString('pt-BR')}</span>
+                        </div>
+                        <div class="md:col-span-1 flex justify-end">
+                            ${!isOutros ? `<button onclick="removeCandidate(${pIndex}, ${cIndex})" class="w-8 h-8 rounded-lg hover:bg-danger/20 text-text-light hover:text-danger flex items-center justify-center transition-colors"><i class="fa-solid fa-trash text-xs"></i></button>` : ''}
+                        </div>
+                    </div>
+                    `;
+                }).join('');
+
+                div.innerHTML = `
+                    <button class="w-full p-4 flex flex-col md:flex-row md:items-center justify-between hover:bg-white/5 transition-colors gap-4" onclick="toggleAccordion('acc-${pIndex}')">
+                        <div class="flex items-center gap-4">
+                            <div class="w-4 h-4 rounded-full shadow-[0_0_10px_rgba(255,255,255,0.2)]" style="background-color: ${p.cor}"></div>
+                            <span class="font-black text-lg text-white">${p.nome}</span>
+                            <span class="text-xs bg-card px-2.5 py-1 rounded-md text-text-light border border-border shadow-inner">${p.candidates.length} elementos</span>
+                        </div>
+                        <div class="flex items-center gap-6 justify-between md:justify-end w-full md:w-auto">
+                            <div class="text-left md:text-right">
+                                <span class="block text-[9px] uppercase tracking-widest text-text-light opacity-70">Projeção Total + Impulso</span>
+                                <span id="party-total-${pIndex}" class="font-mono font-black text-lg text-white">${projTotal.toLocaleString('pt-BR')} <span class="text-xs text-text-light opacity-50">vts</span></span>
+                            </div>
+                            <div class="w-8 h-8 rounded-full bg-card flex items-center justify-center border border-border">
+                                <i class="fa-solid fa-chevron-down text-text-light transition-transform" id="icon-${pIndex}"></i>
+                            </div>
+                        </div>
+                    </button>
+                    <div id="acc-${pIndex}" class="hidden border-t border-border bg-background/30">
+                        <div class="hidden md:grid grid-cols-12 gap-3 px-4 py-2 bg-card/50 border-b border-border text-[10px] font-black uppercase tracking-widest text-text-light opacity-70">
+                            <div class="col-span-5 ml-6">Candidato / Liderança</div>
+                            <div class="col-span-3">Votos (Base 2022)</div>
+                            <div class="col-span-2">Expectativa</div>
+                            <div class="col-span-2 text-right">Resultado Proj.</div>
+                        </div>
+                        <div class="max-h-[350px] overflow-y-auto custom-scrollbar">
+                            ${rowsHtml}
+                        </div>
+                        <div class="p-4 bg-card/30 border-t border-border flex flex-col md:flex-row justify-between md:items-center gap-4">
+                            <button onclick="addCandidate(${pIndex})" class="text-xs font-bold text-background bg-secondary hover:bg-white hover:text-background flex items-center justify-center gap-2 transition-colors px-4 py-2 rounded-lg shadow-lg">
+                                <i class="fa-solid fa-plus"></i> Inserir Liderança
+                            </button>
+                            <span class="text-[10px] text-text-light opacity-50 md:text-right">A regra de Sobras 80/20 do TSE está ativa no simulador.<br>Só ganha a vaga o candidato que ultrapassar 20% do Quociente Eleitoral.</span>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function toggleAccordion(id) {
+            const el = document.getElementById(id);
+            const iconId = 'icon-' + id.split('-')[1];
+            const icon = document.getElementById(iconId);
+            
+            if (el.classList.contains('hidden')) {
+                el.classList.remove('hidden');
+                if (icon) icon.style.transform = 'rotate(180deg)';
+            } else {
+                el.classList.add('hidden');
+                if (icon) icon.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        function updateCandidate(pIndex, cIndex) {
+            const nameEl = document.getElementById(`cand-name-${pIndex}-${cIndex}`);
+            const baseEl = document.getElementById(`cand-base-${pIndex}-${cIndex}`);
+            const growthEl = document.getElementById(`cand-growth-${pIndex}-${cIndex}`);
+            const projEl = document.getElementById(`cand-proj-${pIndex}-${cIndex}`);
+
+            const p = currentState.partidos[pIndex];
+            const c = p.candidates[cIndex];
+
+            if (nameEl) c.nome = nameEl.value;
+            if (baseEl) c.votos = parseInt(baseEl.value) || 0;
+            if (growthEl && !c.isOutros) c.growth = parseFloat(growthEl.value) / 100 || 0;
+
+            const proj = Math.floor(c.votos * (1 + c.growth));
+            if (projEl) projEl.textContent = proj.toLocaleString('pt-BR');
+
+            const sumCands = p.candidates.reduce((acc, cand) => acc + Math.floor(cand.votos * (1 + cand.growth)), 0);
+            const partyTotalEl = document.getElementById(`party-total-${pIndex}`);
+            if(partyTotalEl) partyTotalEl.innerHTML = `${Math.floor(sumCands * (1 + p.boost)).toLocaleString('pt-BR')} <span class="text-xs text-text-light opacity-50">vts</span>`;
+
+            runSimulation();
+        }
+
+        function addCandidate(pIndex) {
+            currentState.partidos[pIndex].candidates.unshift({ nome: 'Nova Liderança', votos: 0, growth: 0 });
+            renderNominatas();
+            setTimeout(() => toggleAccordion(`acc-${pIndex}`), 10);
+            runSimulation();
+        }
+
+        function removeCandidate(pIndex, cIndex) {
+            currentState.partidos[pIndex].candidates.splice(cIndex, 1);
+            renderNominatas();
+            setTimeout(() => toggleAccordion(`acc-${pIndex}`), 10);
+            runSimulation();
+            showToast("Liderança removida da equipa.", "primary");
+        }
+
+        function filterNominatas() {
+            const term = document.getElementById('search-candidate').value.toLowerCase();
+            
+            currentState.partidos.forEach((p, pIndex) => {
+                const accContainer = document.getElementById(`party-acc-container-${pIndex}`);
+                if(!accContainer) return;
+                
+                let partyMatch = p.nome.toLowerCase().includes(term);
+                let candMatch = false;
+
+                p.candidates.forEach((c, cIndex) => {
+                    const row = document.getElementById(`cand-row-${pIndex}-${cIndex}`);
+                    if(!row) return;
+                    
+                    if (c.nome.toLowerCase().includes(term) || partyMatch) {
+                        row.style.display = '';
+                        candMatch = true;
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+
+                if (partyMatch || candMatch) {
+                    accContainer.style.display = '';
+                    if (term.length > 0 && candMatch && !partyMatch) {
+                        document.getElementById(`acc-${pIndex}`).classList.remove('hidden');
+                        document.getElementById(`icon-${pIndex}`).style.transform = 'rotate(180deg)';
+                    }
+                } else {
+                    accContainer.style.display = 'none';
+                }
+            });
+        }
+
+        // ==========================================
+        // D3 VISUALIZATIONS
+        // ==========================================
+        function drawParliament(partidosSim) {
+            const container = d3.select("#parliament-chart");
+            container.selectAll("*").remove();
+
+            let seats = [];
+            partidosSim.sort((a,b) => b.total - a.total).forEach(p => {
+                for(let i=0; i<p.total; i++) seats.push({ party: p.nome, color: p.cor });
+            });
+
+            if(seats.length === 0) return;
+
+            // Ajustado para 16 Cadeiras (Deputados Federais)
+            const rows = [7, 9]; 
+            const radiusScale = [50, 75];
+            
+            const width = 180, height = 100;
+            const svg = container.append("svg")
+                .attr("width", width)
+                .attr("height", height)
+                .append("g")
+                .attr("transform", `translate(${width/2}, ${height - 10})`);
+
+            let seatIndex = 0;
+            rows.forEach((numSeats, rowIndex) => {
+                const r = radiusScale[rowIndex];
+                for(let i=0; i<numSeats; i++) {
+                    if(seatIndex >= seats.length) break;
+                    const angle = Math.PI - (i / (numSeats - 1)) * Math.PI;
+                    const x = r * Math.cos(angle);
+                    const y = -r * Math.sin(angle);
+                    
+                    svg.append("circle")
+                        .attr("cx", x)
+                        .attr("cy", y)
+                        .attr("r", 6) // Raios maiores porque são menos cadeiras
+                        .attr("fill", seats[seatIndex].color)
+                        .attr("stroke", "#0f172a")
+                        .attr("stroke-width", 1.5)
+                        .append("title").text(seats[seatIndex].party); 
+
+                    seatIndex++;
+                }
+            });
+        }
+
+        async function initMap() {
+            const container = d3.select("#map-container");
+            const width = container.node().getBoundingClientRect().width;
+            const height = container.node().getBoundingClientRect().height;
+
+            container.select("svg").remove();
+            const svg = container.append("svg").attr("width", width).attr("height", height);
+            
+            try {
+                const mapData = await d3.json("https://raw.githubusercontent.com/tbrugz/geodata-br/master/geojson/geojs-42-mun.json");
+                const projection = d3.geoMercator().fitSize([width, height], mapData);
+                const path = d3.geoPath().projection(projection);
+
+                const mockColors = ['#8b5cf6', '#14b8a6', '#f59e0b', '#1e293b'];
+
+                svg.selectAll("path")
+                    .data(mapData.features)
+                    .enter().append("path")
+                    .attr("d", path)
+                    .attr("class", "municipio")
+                    .attr("fill", (d, i) => mockColors[i % 4])
+                    .on("mouseover", (e, d) => {
+                        d3.select("#map-tooltip")
+                            .classed("hidden", false)
+                            .style("left", (e.pageX) + "px")
+                            .style("top", (e.pageY - 10) + "px")
+                            .html(`
+                                <div class="font-black text-white text-sm border-b border-border pb-1 mb-1">${d.properties.name}</div>
+                                <div class="text-[10px] uppercase text-text-light flex justify-between gap-4"><span>Dominância:</span><strong class="text-white">Simulada</strong></div>
+                            `);
+                    })
+                    .on("mouseout", () => d3.select("#map-tooltip").classed("hidden", true));
+
+            } catch(e) { console.error("Map load failed", e); }
+        }
+
+        // ==========================================
+        // AI ANALYTICS (GEMINI)
+        // ==========================================
+        async function runAIAnalysis() {
+            const target = document.getElementById('ai-target-party').value;
+            const output = document.getElementById('ai-output');
+            const btn = document.getElementById('btn-ai-generate');
+            
+            if(!target) return;
+
+            btn.disabled = true;
+            btn.innerHTML = `<div class="loader"></div> SINTETIZANDO...`;
+            output.innerHTML = `
+                <div class="flex flex-col items-center justify-center h-full space-y-4 animate-pulse">
+                    <i class="fa-solid fa-brain text-5xl text-primary drop-shadow-[0_0_15px_rgba(139,92,246,0.5)]"></i>
+                    <p class="font-bold text-white tracking-widest uppercase text-sm">Acessando Redes Neurais para ${target}...</p>
+                </div>
+            `;
+
+            const partyData = currentState.simResults.partidosSim.find(p => p.nome === target);
+            if (!partyData) {
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles"></i> SINTETIZAR ESTRATÉGIA`;
+                return;
+            }
+
+            const simulationSummary = `
+                Partido: ${target}
+                Votos Projetados: ${partyData.votosSim}
+                Cadeiras Federais: ${partyData.total} (${partyData.diretas} diretas, ${partyData.sobras} sobras)
+                Quociente Eleitoral (Câmara Federal SC): ${currentState.simResults.QE}
+                Cláusula 10%: ${currentState.simResults.Clausula}
+                Cenário de Sobras: ${JSON.stringify(currentState.simResults.sobrasLog.filter(l => l.vencedor === target || l.ameaca === target))}
+            `;
+
+            const systemPrompt = "Você é um estrategista político sênior de Campanhas para Deputado Federal em Santa Catarina, Brasil. Formate a resposta usando Markdown. Crie seções claras com bullet points. Foque em: 1. Posição no Tabuleiro para a Câmara dos Deputados, 2. Risco Real nas Sobras, 3. Diretriz de Ação. Seja direto, clínico e profissional.";
+            const userQuery = `Gere um memorando tático confidencial para o partido ${target} (bancada federal de SC) baseado nos resultados desta simulação: ${simulationSummary}`;
+
+            const result = await callGemini(userQuery, systemPrompt);
+            
+            if(result) {
+                output.innerHTML = result
+                    .replace(/^### (.*$)/gim, '<h3 class="text-xl font-black text-white mt-6 mb-3 border-l-4 border-primary pl-3">$1</h3>')
+                    .replace(/^## (.*$)/gim, '<h2 class="text-2xl font-black text-secondary mt-8 mb-4 uppercase tracking-tighter">$1</h2>')
+                    .replace(/\*\*(.*?)\*\*/g, '<strong class="text-white bg-white/5 px-1 rounded">$1</strong>')
+                    .replace(/\n/g, '<br>')
+                    .replace(/<br>- (.*?)(?=<br>|$)/g, '<li class="ml-5 mb-2 list-disc marker:text-primary">$1</li>');
+            } else {
+                output.innerHTML = `<div class="text-danger p-6 border border-danger/20 rounded-xl bg-danger/5"><i class="fa-solid fa-triangle-exclamation text-2xl mb-2"></i><br>Falha na ligação à inteligência artificial (API Gemini). Tente novamente.</div>`;
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles"></i> SINTETIZAR ESTRATÉGIA`;
+        }
+
+        async function callGemini(prompt, systemInstruction) {
+            const model = "gemini-2.5-flash-preview-09-2025";
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+            
+            const payload = {
+                contents: [{ parts: [{ text: prompt }] }],
+                systemInstruction: { parts: [{ text: systemInstruction }] }
+            };
+
+            for (let i = 0; i < 5; i++) {
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    
+                    const data = await response.json();
+                    return data.candidates?.[0]?.content?.parts?.[0]?.text;
+                } catch (err) {
+                    const delay = Math.pow(2, i) * 1000;
+                    await new Promise(r => setTimeout(r, delay));
+                }
+            }
+            return null;
+        }
+
+        // ==========================================
+        // UTILS & UX HELPERS
+        // ==========================================
+        function animateValue(id, end, duration = 500) {
+            const obj = document.getElementById(id);
+            if (!obj) return;
+            const start = parseInt(obj.innerHTML.replace(/\./g, '')) || 0;
+            if (start === end) return;
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                obj.innerHTML = Math.floor(progress * (end - start) + start).toLocaleString('pt-BR');
+                if (progress < 1) window.requestAnimationFrame(step);
+            };
+            window.requestAnimationFrame(step);
+        }
+
+        function showToast(message, type = "success") {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const colors = type === 'success' ? 'bg-success/20 border-success/50 text-success' : 'bg-primary/20 border-primary/50 text-primary';
+            toast.className = `p-4 rounded-xl border backdrop-blur-md shadow-lg font-bold text-sm ${colors} toast-enter flex items-center gap-3`;
+            toast.innerHTML = `<i class="fa-solid ${type === 'success' ? 'fa-check-circle' : 'fa-info-circle'} text-lg"></i> ${message}`;
+            
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.classList.replace('toast-enter', 'toast-exit');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function exportCSV() {
+            if(!currentState.simResults) return;
+            
+            let csv = 'Partido;Votos Projetados;Cadeiras Diretas;Cadeiras Sobra;Total Cadeiras\n';
+            currentState.simResults.partidosSim.forEach(p => {
+                if(p.total > 0 || p.votosSim > 0) {
+                    csv += `${p.nome};${p.votosSim};${p.diretas};${p.sobras};${p.total}\n`;
+                }
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", `cenario_sc_federal_2026_${new Date().getTime()}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast("Dados exportados com sucesso!", "success");
+        }
+
+        function changeTab(tab) {
+            document.querySelectorAll('#main-tabs button').forEach(b => {
+                b.classList.remove('active', 'text-white');
+                b.classList.add('text-text-light');
+            });
+            document.querySelectorAll('main > div').forEach(d => d.classList.add('hidden'));
+            
+            const btn = document.querySelector(`button[onclick="changeTab('${tab}')"]`);
+            if (btn) {
+                btn.classList.add('active', 'text-white');
+                btn.classList.remove('text-text-light');
+            }
+            
+            const targetDiv = document.getElementById(`tab-${tab}`);
+            if (targetDiv) targetDiv.classList.remove('hidden');
+            
+            if(tab === 'territorio') setTimeout(initMap, 100);
+        }
+
+        function showPartyDetail(nome) {
+            const p = currentState.simResults.partidosSim.find(x => x.nome === nome);
+            if (!p) return; 
+
+            const modal = document.getElementById('modal-container');
+            const content = document.getElementById('modal-content');
+            
+            const stateParty = currentState.partidos.find(x => x.nome === nome);
+            const candidatesList = stateParty ? stateParty.candidates : [];
+            
+            content.innerHTML = `
+                <div class="p-8 space-y-6 bg-background rounded-3xl relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-white opacity-5 rounded-bl-full pointer-events-none" style="background-color: ${p.cor}"></div>
+                    
+                    <div class="flex justify-between items-center relative z-10">
+                        <div class="flex items-center gap-4">
+                            <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-white text-2xl font-black shadow-lg" style="background-color: ${p.cor}">
+                                ${p.nome.substring(0,2)}
+                            </div>
+                            <div>
+                                <h3 class="text-3xl font-black text-white">${p.nome}</h3>
+                                <p class="text-[10px] font-bold text-text-light opacity-50 uppercase tracking-widest">Dossiê de Desempenho Simulador</p>
+                            </div>
+                        </div>
+                        <button onclick="closeModal()" class="w-10 h-10 rounded-full bg-card hover:bg-border transition-colors flex items-center justify-center text-text-light hover:text-white">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-4 relative z-10">
+                        <div class="bg-card p-5 rounded-2xl border border-border">
+                            <p class="text-[9px] font-black uppercase opacity-50 mb-1 text-text-light">Cadeiras Federais</p>
+                            <p class="text-3xl font-black text-white">${p.total}</p>
+                        </div>
+                        <div class="bg-card p-5 rounded-2xl border border-border">
+                            <p class="text-[9px] font-black uppercase opacity-50 mb-1 text-text-light">Votos Projetados</p>
+                            <p class="text-2xl font-black font-mono text-white mt-1">${(p.votosSim || 0).toLocaleString('pt-BR')}</p>
+                        </div>
+                        <div class="bg-card p-5 rounded-2xl border border-border">
+                            <p class="text-[9px] font-black uppercase opacity-50 mb-1 text-text-light">Impulso Global</p>
+                            <p class="text-2xl font-black mt-1 ${p.boost > 0 ? 'text-success' : p.boost < 0 ? 'text-danger' : 'text-white'}">${(p.boost > 0 ? '+' : '')}${(p.boost * 100).toFixed(0)}%</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4 relative z-10">
+                        <h4 class="text-sm font-black uppercase tracking-tighter flex items-center gap-2 text-white">
+                            <i class="fa-solid fa-users-viewfinder" style="color: ${p.cor}"></i> Resumo da Nominata Projetada
+                        </h4>
+                        <div class="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto custom-scrollbar pr-2">
+                            ${candidatesList.map((c, i) => `
+                                <div class="flex justify-between items-center p-3 rounded-xl bg-card border border-border hover:border-[${p.cor}] transition-colors">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-6 h-6 rounded-md flex items-center justify-center bg-background text-[10px] font-black text-text-light">${i+1}</div>
+                                        <span class="text-sm font-bold text-white ${c.isOutros ? 'opacity-50' : ''}">${c.nome}</span>
+                                    </div>
+                                    <div class="flex flex-col text-right">
+                                        <span class="text-sm font-mono font-bold" style="color: ${p.cor}">${Math.floor(c.votos * (1 + c.growth) * (1 + p.boost)).toLocaleString('pt-BR')}</span>
+                                        ${c.growth !== 0 && !c.isOutros ? `<span class="text-[9px] text-text-light opacity-50">Cresc. indiv: ${(c.growth*100).toFixed(0)}%</span>` : ''}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                content.classList.remove('scale-95');
+                content.classList.add('scale-100');
+            }, 10);
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('modal-container');
+            const content = document.getElementById('modal-content');
+            
+            modal.classList.add('opacity-0');
+            content.classList.remove('scale-100');
+            content.classList.add('scale-95');
+            
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
+        function handleOutsideClick(event) {
+            if (event.target.id === 'modal-container') closeModal();
+        }
+
+        function saveProject() {
+            showToast("O cenário avançado foi salvo com sucesso na equipa!", "primary");
+        }
+    </script>
+</body>
+</html>
